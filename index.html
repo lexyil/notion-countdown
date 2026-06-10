@@ -435,10 +435,17 @@
     unitEls.hours.style.display  = settings.showHours  ? '' : 'none';
     unitEls.mins.style.display   = settings.showMins   ? '' : 'none';
     unitEls.secs.style.display   = settings.showSecs   ? '' : 'none';
+    updateGridColumns();
   }
 
   // toggles the .open class of the panel
   editBtn.addEventListener('click', () => panel.classList.toggle('open'));
+
+  // updates grid columns based on visible units
+  function updateGridColumns() {
+    const visibleCount = Object.values(unitEls).filter(el => el.style.display !== 'none').length;
+    unitsEl.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+  }
 
   // writes values entered to local storage
   saveBtn.addEventListener('click', () => {
