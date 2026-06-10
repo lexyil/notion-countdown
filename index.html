@@ -145,7 +145,7 @@
 
   .units {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
     gap: 8px;
   }
 
@@ -247,6 +247,7 @@
 
   <!-- each of the time fields -->
   <div class="units" id="units">
+    <div class="unit" data-unit="years"><div class="unit-val" id="u-years">--</div><div class="unit-label">Years</div><label class="unit-toggle"><input type="checkbox" id="input-show-years" /> Show</label></div>
     <div class="unit" data-unit="months"><div class="unit-val" id="u-months">--</div><div class="unit-label">Months</div><label class="unit-toggle"><input type="checkbox" id="input-show-months" /> Show</label></div>
     <div class="unit" data-unit="days"><div class="unit-val" id="u-days">--</div><div class="unit-label">Days</div><label class="unit-toggle"><input type="checkbox" id="input-show-days" /> Show</label></div>
     <div class="unit" data-unit="hours"><div class="unit-val" id="u-hours">--</div><div class="unit-label">Hours</div><label class="unit-toggle"><input type="checkbox" id="input-show-hours" /> Show</label></div>
@@ -274,10 +275,12 @@
   const inShowHours  = document.getElementById('input-show-hours');
   const inShowMins   = document.getElementById('input-show-mins');
   const inShowSecs   = document.getElementById('input-show-secs');
+  const inShowYears  = document.getElementById('input-show-years');
   const saveBtn  = document.getElementById('save-btn');
   const unitsEl  = document.getElementById('units');
   const doneEl   = document.getElementById('done');
   const unitEls  = {
+    years:  document.querySelector('[data-unit="years"]'),
     months: document.querySelector('[data-unit="months"]'),
     days:   document.querySelector('[data-unit="days"]'),
     hours:  document.querySelector('[data-unit="hours"]'),
@@ -285,6 +288,7 @@
     secs:   document.querySelector('[data-unit="secs"]'),
   };
   const unitValues = {
+    years:  document.getElementById('u-years'),
     months: document.getElementById('u-months'),
     days:   document.getElementById('u-days'),
     hours:  document.getElementById('u-hours'),
@@ -309,6 +313,7 @@
     inHour.value  = d.hour != null ? d.hour : '';
     inMin.value   = d.min  != null ? d.min  : '';
     inSec.value   = d.sec  != null ? d.sec  : '';
+    inShowYears.checked  = d.showYears  !== false;
     inShowMonths.checked = d.showMonths !== false;
     inShowDays.checked   = d.showDays   !== false;
     inShowHours.checked  = d.showHours  !== false;
@@ -338,6 +343,7 @@
     doneEl.style.display  = 'none';
 
     const settings = {
+      showYears:  d.showYears  !== false,
       showMonths: d.showMonths !== false,
       showDays:   d.showDays   !== false,
       showHours:  d.showHours  !== false,
@@ -346,26 +352,37 @@
     };
 
     const totalSeconds = Math.floor((target - now) / 1000);
+    let years = 0;
     let months = 0;
     let remaining = totalSeconds;
 
-    if (settings.showMonths) {
-      months = (y2 - now.getFullYear()) * 12 + (m2 - 1 - now.getMonth());
-      if (day2 < now.getDate()) months--;
-      if (months < 0) months = 0;
-
+    if (settings.showYears) {
+      years = y2 - now.getFullYear();
+      if (years < 0) years = 0;
       const base = new Date(
-        now.getFullYear(), now.getMonth() + months, now.getDate(),
+        now.getFullYear() + years, now.getMonth(), now.getDate(),
         now.getHours(), now.getMinutes(), now.getSeconds()
       );
       remaining = Math.max(0, Math.floor((target - base) / 1000));
     }
 
-    const anySelected = settings.showMonths || settings.showDays || settings.showHours || settings.showMins || settings.showSecs;
+    if (settings.showMonths) {
+      months = (y2 - now.getFullYear()) * 12 + (m2 - 1 - now.getMonth());
+      if (day2 < now.getDate()) months--;
+      if (months < 0) months = 0;
+      months -= years * 12;
+      const base = new Date(
+        now.getFullYear() + years, now.getMonth() + months, now.getDate(),
+        now.getHours(), now.getMinutes(), now.getSeconds()
+      );
+      remaining = Math.max(0, Math.floor((target - base) / 1000));
+    }
+
+    const anySelected = settings.showYears || settings.showMonths || settings.showDays || settings.showHours || settings.showMins || settings.showSecs;
     if (!anySelected) settings.showSecs = true;
 
-    const parts = { months, days: 0, hours: 0, mins: 0, secs: 0 };
-    let cursor = settings.showMonths ? remaining : totalSeconds;
+    const parts = { years, months, days: 0, hours: 0, mins: 0, secs: 0 };
+    let cursor = (settings.showYears || settings.showMonths) ? remaining : totalSeconds;
 
     if (settings.showDays) {
       parts.days = Math.floor(cursor / 86400);
@@ -383,7 +400,7 @@
       parts.secs = cursor;
     }
 
-    if (!settings.showMonths && settings.showDays === false && settings.showHours) {
+    if (!settings.showYears && !settings.showMonths && settings.showDays === false && settings.showHours) {
       parts.hours = Math.floor(totalSeconds / 3600);
       if (settings.showMins) {
         cursor = totalSeconds % 3600;
@@ -392,25 +409,27 @@
         if (settings.showSecs) parts.secs = cursor;
       }
     }
-    if (!settings.showMonths && settings.showDays === false && settings.showHours === false && settings.showMins) {
+    if (!settings.showYears && !settings.showMonths && settings.showDays === false && settings.showHours === false && settings.showMins) {
       parts.mins = Math.floor(totalSeconds / 60);
       if (settings.showSecs) parts.secs = totalSeconds % 60;
     }
-    if (!settings.showMonths && settings.showDays && !settings.showHours && settings.showMins) {
+    if (!settings.showYears && !settings.showMonths && settings.showDays && !settings.showHours && settings.showMins) {
       cursor = Math.floor(totalSeconds % 86400);
       parts.mins = Math.floor(cursor / 60);
       if (settings.showSecs) parts.secs = cursor % 60;
     }
-    if (!settings.showMonths && !settings.showDays && !settings.showHours && !settings.showMins && settings.showSecs) {
+    if (!settings.showYears && !settings.showMonths && !settings.showDays && !settings.showHours && !settings.showMins && settings.showSecs) {
       parts.secs = totalSeconds;
     }
 
+    unitValues.years.textContent = parts.years;
     unitValues.months.textContent = parts.months;
     unitValues.days.textContent = parts.days;
     unitValues.hours.textContent = parts.hours;
     unitValues.mins.textContent = parts.mins;
     unitValues.secs.textContent = parts.secs;
 
+    unitEls.years.style.display   = settings.showYears   ? '' : 'none';
     unitEls.months.style.display = settings.showMonths ? '' : 'none';
     unitEls.days.style.display   = settings.showDays   ? '' : 'none';
     unitEls.hours.style.display  = settings.showHours  ? '' : 'none';
@@ -429,6 +448,7 @@
       hour:  parseInt(inHour.value) || 0,
       min:   parseInt(inMin.value)  || 0,
       sec:   parseInt(inSec.value)  || 0,
+      showYears:  inShowYears.checked,
       showMonths: inShowMonths.checked,
       showDays:   inShowDays.checked,
       showHours:  inShowHours.checked,
