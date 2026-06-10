@@ -145,7 +145,6 @@
 
   .units {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
     gap: 8px;
   }
 
@@ -321,6 +320,21 @@
     inShowSecs.checked   = d.showSecs   !== false;
   }
 
+  // updates grid columns based on saved show settings
+  function updateGridColumns() {
+    const d = loadData();
+    const checks = [
+      d.showYears  !== false,
+      d.showMonths !== false,
+      d.showDays   !== false,
+      d.showHours  !== false,
+      d.showMins   !== false,
+      d.showSecs   !== false,
+    ];
+    const visibleCount = checks.filter(Boolean).length || 1;
+    unitsEl.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+  }
+
   // core logic. updates every second
   function tick() {
     const d = loadData();
@@ -430,22 +444,16 @@
     unitValues.secs.textContent = parts.secs;
 
     unitEls.years.style.display   = settings.showYears   ? '' : 'none';
-    unitEls.months.style.display = settings.showMonths ? '' : 'none';
-    unitEls.days.style.display   = settings.showDays   ? '' : 'none';
-    unitEls.hours.style.display  = settings.showHours  ? '' : 'none';
-    unitEls.mins.style.display   = settings.showMins   ? '' : 'none';
-    unitEls.secs.style.display   = settings.showSecs   ? '' : 'none';
+    unitEls.months.style.display  = settings.showMonths  ? '' : 'none';
+    unitEls.days.style.display    = settings.showDays    ? '' : 'none';
+    unitEls.hours.style.display   = settings.showHours   ? '' : 'none';
+    unitEls.mins.style.display    = settings.showMins    ? '' : 'none';
+    unitEls.secs.style.display    = settings.showSecs    ? '' : 'none';
     updateGridColumns();
   }
 
   // toggles the .open class of the panel
   editBtn.addEventListener('click', () => panel.classList.toggle('open'));
-
-  // updates grid columns based on visible units
-  function updateGridColumns() {
-    const visibleCount = Object.values(unitEls).filter(el => el.style.display !== 'none').length;
-    unitsEl.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
-  }
 
   // writes values entered to local storage
   saveBtn.addEventListener('click', () => {
@@ -470,6 +478,7 @@
 
   // init population and tick
   populateForm(loadData());
+  updateGridColumns();
   tick();
   setInterval(tick, 1000);
 </script>
