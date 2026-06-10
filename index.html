@@ -14,6 +14,7 @@
     padding: 0;
   }
 
+  /* defaults for light themes, dark theme colours below */
   .card {
     width: 100%;
     max-width: none;
@@ -70,15 +71,25 @@
     letter-spacing: 0.06em;
   }
 
-  .edit-panel input {
-    width: 100%;
+  .edit-panel input,
+  .edit-panel input[type='checkbox'] {
     font-size: 14px;
+    font-family: inherit;
+  }
+
+  .edit-panel input[type='text'],
+  .edit-panel input[type='date'],
+  .edit-panel input[type='number'] {
+    width: 100%;
     padding: 8px 12px;
     border: 1px solid #e0e0e0;
     border-radius: 10px;
     background: #fff;
     color: #111;
-    font-family: inherit;
+  }
+  .edit-panel input[type='checkbox'] {
+    width: auto;
+    margin-right: 8px;
   }
   .edit-panel input:focus { outline: none; border-color: #bbb; }
 
@@ -87,6 +98,36 @@
     gap: 8px;
   }
   .time-row input { flex: 1; }
+
+  .unit {
+    background: #f5f5f5;
+    border-radius: 12px;
+    padding: 0.9rem 0.4rem;
+    text-align: center;
+    min-width: 0;
+  }
+
+  .unit-toggle {
+    display: none;
+    margin-top: 0.8rem;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #555;
+  }
+  .unit-toggle input {
+    width: auto;
+    margin: 0;
+  }
+
+  .edit-panel.open + .units .unit-toggle {
+    display: inline-flex;
+  }
+
+  .edit-panel.open + .units .unit {
+    display: block !important;
+  }
 
   .save-btn {
     align-self: flex-start;
@@ -104,7 +145,7 @@
 
   .units {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 8px;
   }
 
@@ -113,6 +154,7 @@
     border-radius: 12px;
     padding: 0.9rem 0.4rem;
     text-align: center;
+    min-width: 0;
   }
 
   .unit-val {
@@ -120,6 +162,10 @@
     font-weight: 500;
     color: #111;
     line-height: 1.1;
+  }
+
+  .edit-panel.open + .units .unit-val {
+    display: none;
   }
 
   .unit-label {
@@ -130,6 +176,15 @@
     letter-spacing: 0.06em;
   }
 
+  .edit-panel.open + .units .unit-label {
+    font-size: 26px;
+    font-weight: 500;
+    color: #111;
+    margin-top: 0;
+    text-transform: capitalize;
+    letter-spacing: normal;
+  }
+
   .done {
     font-size: 16px;
     color: #aaa;
@@ -137,6 +192,8 @@
     padding: 1.5rem 0;
   }
 
+
+  /* for dark themes */
   @media (prefers-color-scheme: dark) {
     .card { background: #1e1e1e; border-color: #333; }
     .card-title { color: #f0f0f0; }
@@ -150,17 +207,24 @@
     .unit { background: #2a2a2a; }
     .unit-val { color: #f0f0f0; }
     .unit-label { color: #666; }
+    .edit-panel.open + .units .unit-label { color: #f0f0f0; }
+    .edit-panel.open + .units .unit-toggle { color: #bbb; }
+    .unit-toggle { color: #bbb; }
     .done { color: #666; }
   }
 </style>
 </head>
+
+
 <body>
 <div class="card">
+  <!-- header -->
   <div class="card-header">
     <p class="card-title" id="title">Countdown</p>
     <button class="edit-toggle" id="edit-btn" aria-label="Edit settings">✎</button>
   </div>
 
+  <!-- edit menu -->
   <div class="edit-panel" id="edit-panel">
     <div>
       <label for="input-title">Title</label>
@@ -181,18 +245,20 @@
     <button class="save-btn" id="save-btn">Save</button>
   </div>
 
+  <!-- each of the time fields -->
   <div class="units" id="units">
-    <div class="unit"><div class="unit-val" id="u-months">--</div><div class="unit-label">Months</div></div>
-    <div class="unit"><div class="unit-val" id="u-days">--</div><div class="unit-label">Days</div></div>
-    <div class="unit"><div class="unit-val" id="u-hours">--</div><div class="unit-label">Hours</div></div>
-    <div class="unit"><div class="unit-val" id="u-mins">--</div><div class="unit-label">Minutes</div></div>
-    <div class="unit"><div class="unit-val" id="u-secs">--</div><div class="unit-label">Seconds</div></div>
+    <div class="unit" data-unit="months"><div class="unit-val" id="u-months">--</div><div class="unit-label">Months</div><label class="unit-toggle"><input type="checkbox" id="input-show-months" /> Show</label></div>
+    <div class="unit" data-unit="days"><div class="unit-val" id="u-days">--</div><div class="unit-label">Days</div><label class="unit-toggle"><input type="checkbox" id="input-show-days" /> Show</label></div>
+    <div class="unit" data-unit="hours"><div class="unit-val" id="u-hours">--</div><div class="unit-label">Hours</div><label class="unit-toggle"><input type="checkbox" id="input-show-hours" /> Show</label></div>
+    <div class="unit" data-unit="mins"><div class="unit-val" id="u-mins">--</div><div class="unit-label">Minutes</div><label class="unit-toggle"><input type="checkbox" id="input-show-mins" /> Show</label></div>
+    <div class="unit" data-unit="secs"><div class="unit-val" id="u-secs">--</div><div class="unit-label">Seconds</div><label class="unit-toggle"><input type="checkbox" id="input-show-secs" /> Show</label></div>
   </div>
 
   <div class="done" id="done" style="display:none">That day has passed.</div>
 </div>
 
 <script>
+  // cache local storage key
   const KEY = 'notion-countdown-v1';
 
   const titleEl  = document.getElementById('title');
@@ -203,17 +269,39 @@
   const inHour   = document.getElementById('input-hour');
   const inMin    = document.getElementById('input-min');
   const inSec    = document.getElementById('input-sec');
+  const inShowMonths = document.getElementById('input-show-months');
+  const inShowDays   = document.getElementById('input-show-days');
+  const inShowHours  = document.getElementById('input-show-hours');
+  const inShowMins   = document.getElementById('input-show-mins');
+  const inShowSecs   = document.getElementById('input-show-secs');
   const saveBtn  = document.getElementById('save-btn');
   const unitsEl  = document.getElementById('units');
   const doneEl   = document.getElementById('done');
+  const unitEls  = {
+    months: document.querySelector('[data-unit="months"]'),
+    days:   document.querySelector('[data-unit="days"]'),
+    hours:  document.querySelector('[data-unit="hours"]'),
+    mins:   document.querySelector('[data-unit="mins"]'),
+    secs:   document.querySelector('[data-unit="secs"]'),
+  };
+  const unitValues = {
+    months: document.getElementById('u-months'),
+    days:   document.getElementById('u-days'),
+    hours:  document.getElementById('u-hours'),
+    mins:   document.getElementById('u-mins'),
+    secs:   document.getElementById('u-secs'),
+  };
 
+  // pad digits to begin with 0 for display 
   function pad(n) { return String(n).padStart(2, '0'); }
 
+  // reads data from local storage
   function loadData() {
     try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
     catch { return {}; }
   }
 
+  // populate form fields from data
   function populateForm(d) {
     titleEl.textContent = d.title || 'Countdown';
     inTitle.value = d.title || '';
@@ -221,8 +309,14 @@
     inHour.value  = d.hour != null ? d.hour : '';
     inMin.value   = d.min  != null ? d.min  : '';
     inSec.value   = d.sec  != null ? d.sec  : '';
+    inShowMonths.checked = d.showMonths !== false;
+    inShowDays.checked   = d.showDays   !== false;
+    inShowHours.checked  = d.showHours  !== false;
+    inShowMins.checked   = d.showMins   !== false;
+    inShowSecs.checked   = d.showSecs   !== false;
   }
 
+  // core logic. updates every second
   function tick() {
     const d = loadData();
     if (!d.date) return;
@@ -230,11 +324,9 @@
     const hour = parseInt(d.hour) || 0;
     const min  = parseInt(d.min)  || 0;
     const sec  = parseInt(d.sec)  || 0;
-
-    // build target from stored parts
     const [y2, m2, day2] = d.date.split('-').map(Number);
     const target = new Date(y2, m2 - 1, day2, hour, min, sec);
-    const now    = new Date();
+    const now = new Date();
 
     if (target <= now) {
       unitsEl.style.display = 'none';
@@ -245,32 +337,91 @@
     unitsEl.style.display = '';
     doneEl.style.display  = 'none';
 
-    // months component
-    let months = (y2 - now.getFullYear()) * 12 + (m2 - 1 - now.getMonth());
-    if (day2 < now.getDate()) months--;
-    if (months < 0) months = 0;
+    const settings = {
+      showMonths: d.showMonths !== false,
+      showDays:   d.showDays   !== false,
+      showHours:  d.showHours  !== false,
+      showMins:   d.showMins   !== false,
+      showSecs:   d.showSecs   !== false,
+    };
 
-    // remaining after whole months
-    const base = new Date(
-      now.getFullYear(), now.getMonth() + months, now.getDate(),
-      now.getHours(), now.getMinutes(), now.getSeconds()
-    );
+    const totalSeconds = Math.floor((target - now) / 1000);
+    let months = 0;
+    let remaining = totalSeconds;
 
-    const diff  = Math.floor((target - base) / 1000);
-    const days  = Math.floor(diff / 86400);
-    const hours = Math.floor((diff % 86400) / 3600);
-    const mins  = Math.floor((diff % 3600) / 60);
-    const secs  = diff % 60;
+    if (settings.showMonths) {
+      months = (y2 - now.getFullYear()) * 12 + (m2 - 1 - now.getMonth());
+      if (day2 < now.getDate()) months--;
+      if (months < 0) months = 0;
 
-    document.getElementById('u-months').textContent = months;
-    document.getElementById('u-days').textContent   = days;
-    document.getElementById('u-hours').textContent  = hours;
-    document.getElementById('u-mins').textContent   = mins;
-    document.getElementById('u-secs').textContent   = secs;
+      const base = new Date(
+        now.getFullYear(), now.getMonth() + months, now.getDate(),
+        now.getHours(), now.getMinutes(), now.getSeconds()
+      );
+      remaining = Math.max(0, Math.floor((target - base) / 1000));
+    }
+
+    const anySelected = settings.showMonths || settings.showDays || settings.showHours || settings.showMins || settings.showSecs;
+    if (!anySelected) settings.showSecs = true;
+
+    const parts = { months, days: 0, hours: 0, mins: 0, secs: 0 };
+    let cursor = settings.showMonths ? remaining : totalSeconds;
+
+    if (settings.showDays) {
+      parts.days = Math.floor(cursor / 86400);
+      cursor %= 86400;
+    }
+    if (settings.showHours) {
+      parts.hours = Math.floor(cursor / 3600);
+      cursor %= 3600;
+    }
+    if (settings.showMins) {
+      parts.mins = Math.floor(cursor / 60);
+      cursor %= 60;
+    }
+    if (settings.showSecs) {
+      parts.secs = cursor;
+    }
+
+    if (!settings.showMonths && settings.showDays === false && settings.showHours) {
+      parts.hours = Math.floor(totalSeconds / 3600);
+      if (settings.showMins) {
+        cursor = totalSeconds % 3600;
+        parts.mins = Math.floor(cursor / 60);
+        cursor %= 60;
+        if (settings.showSecs) parts.secs = cursor;
+      }
+    }
+    if (!settings.showMonths && settings.showDays === false && settings.showHours === false && settings.showMins) {
+      parts.mins = Math.floor(totalSeconds / 60);
+      if (settings.showSecs) parts.secs = totalSeconds % 60;
+    }
+    if (!settings.showMonths && settings.showDays && !settings.showHours && settings.showMins) {
+      cursor = Math.floor(totalSeconds % 86400);
+      parts.mins = Math.floor(cursor / 60);
+      if (settings.showSecs) parts.secs = cursor % 60;
+    }
+    if (!settings.showMonths && !settings.showDays && !settings.showHours && !settings.showMins && settings.showSecs) {
+      parts.secs = totalSeconds;
+    }
+
+    unitValues.months.textContent = parts.months;
+    unitValues.days.textContent = parts.days;
+    unitValues.hours.textContent = parts.hours;
+    unitValues.mins.textContent = parts.mins;
+    unitValues.secs.textContent = parts.secs;
+
+    unitEls.months.style.display = settings.showMonths ? '' : 'none';
+    unitEls.days.style.display   = settings.showDays   ? '' : 'none';
+    unitEls.hours.style.display  = settings.showHours  ? '' : 'none';
+    unitEls.mins.style.display   = settings.showMins   ? '' : 'none';
+    unitEls.secs.style.display   = settings.showSecs   ? '' : 'none';
   }
 
+  // toggles the .open class of the panel
   editBtn.addEventListener('click', () => panel.classList.toggle('open'));
 
+  // writes values entered to local storage
   saveBtn.addEventListener('click', () => {
     const data = {
       title: inTitle.value.trim(),
@@ -278,6 +429,11 @@
       hour:  parseInt(inHour.value) || 0,
       min:   parseInt(inMin.value)  || 0,
       sec:   parseInt(inSec.value)  || 0,
+      showMonths: inShowMonths.checked,
+      showDays:   inShowDays.checked,
+      showHours:  inShowHours.checked,
+      showMins:   inShowMins.checked,
+      showSecs:   inShowSecs.checked,
     };
     localStorage.setItem(KEY, JSON.stringify(data));
     populateForm(data);
@@ -285,6 +441,7 @@
     tick();
   });
 
+  // init population and tick
   populateForm(loadData());
   tick();
   setInterval(tick, 1000);
