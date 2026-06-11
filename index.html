@@ -14,7 +14,6 @@
     padding: 0;
   }
 
-  /* defaults for light themes, dark theme colours below */
   .card {
     width: 100%;
     max-width: none;
@@ -99,14 +98,6 @@
   }
   .time-row input { flex: 1; }
 
-  .unit {
-    background: #f5f5f5;
-    border-radius: 12px;
-    padding: 0.7rem 0.3rem;
-    text-align: center;
-    min-width: 0;
-  }
-
   .unit-toggle {
     display: none;
     margin-top: 0.8rem;
@@ -127,6 +118,11 @@
 
   .edit-panel.open + .units .unit {
     display: block !important;
+  }
+
+  /* all 7 tiles in one equal row while editing */
+  .edit-panel.open + .units {
+    grid-template-columns: repeat(7, 1fr) !important;
   }
 
   .save-btn {
@@ -176,7 +172,7 @@
   }
 
   .edit-panel.open + .units .unit-label {
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 500;
     color: #111;
     margin-top: 0;
@@ -191,8 +187,6 @@
     padding: 1.5rem 0;
   }
 
-
-  /* for dark themes */
   @media (prefers-color-scheme: dark) {
     .card { background: #1e1e1e; border-color: #333; }
     .card-title { color: #f0f0f0; }
@@ -214,16 +208,13 @@
 </style>
 </head>
 
-
 <body>
 <div class="card">
-  <!-- header -->
   <div class="card-header">
     <p class="card-title" id="title">Countdown</p>
     <button class="edit-toggle" id="edit-btn" aria-label="Edit settings">✎</button>
   </div>
 
-  <!-- edit menu -->
   <div class="edit-panel" id="edit-panel">
     <div>
       <label for="input-title">Title</label>
@@ -244,10 +235,10 @@
     <button class="save-btn" id="save-btn">Save</button>
   </div>
 
-  <!-- each of the time fields -->
   <div class="units" id="units">
     <div class="unit" data-unit="years"><div class="unit-val" id="u-years">--</div><div class="unit-label">Years</div><label class="unit-toggle"><input type="checkbox" id="input-show-years" /> Show</label></div>
     <div class="unit" data-unit="months"><div class="unit-val" id="u-months">--</div><div class="unit-label">Months</div><label class="unit-toggle"><input type="checkbox" id="input-show-months" /> Show</label></div>
+    <div class="unit" data-unit="weeks"><div class="unit-val" id="u-weeks">--</div><div class="unit-label">Weeks</div><label class="unit-toggle"><input type="checkbox" id="input-show-weeks" /> Show</label></div>
     <div class="unit" data-unit="days"><div class="unit-val" id="u-days">--</div><div class="unit-label">Days</div><label class="unit-toggle"><input type="checkbox" id="input-show-days" /> Show</label></div>
     <div class="unit" data-unit="hours"><div class="unit-val" id="u-hours">--</div><div class="unit-label">Hours</div><label class="unit-toggle"><input type="checkbox" id="input-show-hours" /> Show</label></div>
     <div class="unit" data-unit="mins"><div class="unit-val" id="u-mins">--</div><div class="unit-label">Minutes</div><label class="unit-toggle"><input type="checkbox" id="input-show-mins" /> Show</label></div>
@@ -258,29 +249,31 @@
 </div>
 
 <script>
-  // cache local storage key
   const KEY = 'notion-countdown-v1';
 
-  const titleEl  = document.getElementById('title');
-  const editBtn  = document.getElementById('edit-btn');
-  const panel    = document.getElementById('edit-panel');
-  const inTitle  = document.getElementById('input-title');
-  const inDate   = document.getElementById('input-date');
-  const inHour   = document.getElementById('input-hour');
-  const inMin    = document.getElementById('input-min');
-  const inSec    = document.getElementById('input-sec');
-  const inShowMonths = document.getElementById('input-show-months');
-  const inShowDays   = document.getElementById('input-show-days');
-  const inShowHours  = document.getElementById('input-show-hours');
-  const inShowMins   = document.getElementById('input-show-mins');
-  const inShowSecs   = document.getElementById('input-show-secs');
-  const inShowYears  = document.getElementById('input-show-years');
-  const saveBtn  = document.getElementById('save-btn');
-  const unitsEl  = document.getElementById('units');
-  const doneEl   = document.getElementById('done');
-  const unitEls  = {
+  const titleEl       = document.getElementById('title');
+  const editBtn       = document.getElementById('edit-btn');
+  const panel         = document.getElementById('edit-panel');
+  const inTitle       = document.getElementById('input-title');
+  const inDate        = document.getElementById('input-date');
+  const inHour        = document.getElementById('input-hour');
+  const inMin         = document.getElementById('input-min');
+  const inSec         = document.getElementById('input-sec');
+  const inShowYears   = document.getElementById('input-show-years');
+  const inShowMonths  = document.getElementById('input-show-months');
+  const inShowWeeks   = document.getElementById('input-show-weeks');
+  const inShowDays    = document.getElementById('input-show-days');
+  const inShowHours   = document.getElementById('input-show-hours');
+  const inShowMins    = document.getElementById('input-show-mins');
+  const inShowSecs    = document.getElementById('input-show-secs');
+  const saveBtn       = document.getElementById('save-btn');
+  const unitsEl       = document.getElementById('units');
+  const doneEl        = document.getElementById('done');
+
+  const unitEls = {
     years:  document.querySelector('[data-unit="years"]'),
     months: document.querySelector('[data-unit="months"]'),
+    weeks:  document.querySelector('[data-unit="weeks"]'),
     days:   document.querySelector('[data-unit="days"]'),
     hours:  document.querySelector('[data-unit="hours"]'),
     mins:   document.querySelector('[data-unit="mins"]'),
@@ -289,53 +282,50 @@
   const unitValues = {
     years:  document.getElementById('u-years'),
     months: document.getElementById('u-months'),
+    weeks:  document.getElementById('u-weeks'),
     days:   document.getElementById('u-days'),
     hours:  document.getElementById('u-hours'),
     mins:   document.getElementById('u-mins'),
     secs:   document.getElementById('u-secs'),
   };
 
-  // pad digits to begin with 0 for display 
-  function pad(n) { return String(n).padStart(2, '0'); }
-
-  // reads data from local storage
   function loadData() {
     try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
     catch { return {}; }
   }
 
-  // populate form fields from data
   function populateForm(d) {
-    titleEl.textContent = d.title || 'Countdown';
-    inTitle.value = d.title || '';
-    inDate.value  = d.date  || '';
-    inHour.value  = d.hour != null ? d.hour : '';
-    inMin.value   = d.min  != null ? d.min  : '';
-    inSec.value   = d.sec  != null ? d.sec  : '';
+    titleEl.textContent  = d.title || 'Countdown';
+    inTitle.value        = d.title || '';
+    inDate.value         = d.date  || '';
+    inHour.value         = d.hour != null ? d.hour : '';
+    inMin.value          = d.min  != null ? d.min  : '';
+    inSec.value          = d.sec  != null ? d.sec  : '';
     inShowYears.checked  = d.showYears  !== false;
     inShowMonths.checked = d.showMonths !== false;
+    inShowWeeks.checked  = d.showWeeks  === true;
     inShowDays.checked   = d.showDays   !== false;
     inShowHours.checked  = d.showHours  !== false;
     inShowMins.checked   = d.showMins   !== false;
     inShowSecs.checked   = d.showSecs   !== false;
   }
 
-  // updates grid columns based on saved show settings
+  // recalculate column count from saved visibility; no-op while panel is open
   function updateGridColumns() {
+    if (panel.classList.contains('open')) return;
     const d = loadData();
-    const checks = [
+    const visibleCount = [
       d.showYears  !== false,
       d.showMonths !== false,
+      d.showWeeks  === true,
       d.showDays   !== false,
       d.showHours  !== false,
       d.showMins   !== false,
       d.showSecs   !== false,
-    ];
-    const visibleCount = checks.filter(Boolean).length || 1;
+    ].filter(Boolean).length || 1;
     unitsEl.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
   }
 
-  // core logic. updates every second
   function tick() {
     const d = loadData();
     if (!d.date) return;
@@ -356,9 +346,10 @@
     unitsEl.style.display = '';
     doneEl.style.display  = 'none';
 
-    const settings = {
+    const s = {
       showYears:  d.showYears  !== false,
       showMonths: d.showMonths !== false,
+      showWeeks:  d.showWeeks  === true,
       showDays:   d.showDays   !== false,
       showHours:  d.showHours  !== false,
       showMins:   d.showMins   !== false,
@@ -366,105 +357,111 @@
     };
 
     const totalSeconds = Math.floor((target - now) / 1000);
-    let years = 0;
-    let months = 0;
+    let years = 0, months = 0;
     let remaining = totalSeconds;
 
-    if (settings.showYears) {
+    if (s.showYears) {
       years = y2 - now.getFullYear();
       if (years < 0) years = 0;
-      const base = new Date(
-        now.getFullYear() + years, now.getMonth(), now.getDate(),
-        now.getHours(), now.getMinutes(), now.getSeconds()
-      );
+      const base = new Date(now.getFullYear() + years, now.getMonth(), now.getDate(),
+                            now.getHours(), now.getMinutes(), now.getSeconds());
       remaining = Math.max(0, Math.floor((target - base) / 1000));
     }
 
-    if (settings.showMonths) {
+    if (s.showMonths) {
       months = (y2 - now.getFullYear()) * 12 + (m2 - 1 - now.getMonth());
       if (day2 < now.getDate()) months--;
       if (months < 0) months = 0;
       months -= years * 12;
-      const base = new Date(
-        now.getFullYear() + years, now.getMonth() + months, now.getDate(),
-        now.getHours(), now.getMinutes(), now.getSeconds()
-      );
+      const base = new Date(now.getFullYear() + years, now.getMonth() + months, now.getDate(),
+                            now.getHours(), now.getMinutes(), now.getSeconds());
       remaining = Math.max(0, Math.floor((target - base) / 1000));
     }
 
-    const anySelected = settings.showYears || settings.showMonths || settings.showDays || settings.showHours || settings.showMins || settings.showSecs;
-    if (!anySelected) settings.showSecs = true;
+    if (!s.showYears && !s.showMonths && !s.showDays && !s.showHours && !s.showMins && !s.showSecs && !s.showWeeks) {
+      s.showSecs = true;
+    }
 
-    const parts = { years, months, days: 0, hours: 0, mins: 0, secs: 0 };
-    let cursor = (settings.showYears || settings.showMonths) ? remaining : totalSeconds;
+    const parts = { years, months, weeks: 0, days: 0, hours: 0, mins: 0, secs: 0 };
+    // cursor starts after years/months have been subtracted if those units are shown
+    let cursor = (s.showYears || s.showMonths) ? remaining : totalSeconds;
 
-    if (settings.showDays) {
+    if (s.showWeeks) {
+      parts.weeks = Math.floor(cursor / 604800);
+      cursor %= 604800;
+    }
+    if (s.showDays) {
       parts.days = Math.floor(cursor / 86400);
       cursor %= 86400;
     }
-    if (settings.showHours) {
+    if (s.showHours) {
       parts.hours = Math.floor(cursor / 3600);
       cursor %= 3600;
     }
-    if (settings.showMins) {
+    if (s.showMins) {
       parts.mins = Math.floor(cursor / 60);
       cursor %= 60;
     }
-    if (settings.showSecs) {
+    if (s.showSecs) {
       parts.secs = cursor;
     }
 
-    if (!settings.showYears && !settings.showMonths && settings.showDays === false && settings.showHours) {
+    // edge-case: hours as the largest unit
+    if (!s.showYears && !s.showMonths && !s.showWeeks && !s.showDays && s.showHours) {
       parts.hours = Math.floor(totalSeconds / 3600);
-      if (settings.showMins) {
-        cursor = totalSeconds % 3600;
-        parts.mins = Math.floor(cursor / 60);
-        cursor %= 60;
-        if (settings.showSecs) parts.secs = cursor;
-      }
+      cursor = totalSeconds % 3600;
+      if (s.showMins) { parts.mins = Math.floor(cursor / 60); cursor %= 60; }
+      if (s.showSecs) parts.secs = cursor;
     }
-    if (!settings.showYears && !settings.showMonths && settings.showDays === false && settings.showHours === false && settings.showMins) {
+    // edge-case: mins as the largest unit
+    if (!s.showYears && !s.showMonths && !s.showWeeks && !s.showDays && !s.showHours && s.showMins) {
       parts.mins = Math.floor(totalSeconds / 60);
-      if (settings.showSecs) parts.secs = totalSeconds % 60;
+      if (s.showSecs) parts.secs = totalSeconds % 60;
     }
-    if (!settings.showYears && !settings.showMonths && settings.showDays && !settings.showHours && settings.showMins) {
-      cursor = Math.floor(totalSeconds % 86400);
+    // edge-case: days shown but not hours, mins shown — mins roll up from remainder of day
+    if (!s.showYears && !s.showMonths && !s.showWeeks && s.showDays && !s.showHours && s.showMins) {
+      cursor = totalSeconds % 86400;
       parts.mins = Math.floor(cursor / 60);
-      if (settings.showSecs) parts.secs = cursor % 60;
+      if (s.showSecs) parts.secs = cursor % 60;
     }
-    if (!settings.showYears && !settings.showMonths && !settings.showDays && !settings.showHours && !settings.showMins && settings.showSecs) {
+    // edge-case: only seconds
+    if (!s.showYears && !s.showMonths && !s.showWeeks && !s.showDays && !s.showHours && !s.showMins && s.showSecs) {
       parts.secs = totalSeconds;
     }
 
-    unitValues.years.textContent = parts.years;
+    unitValues.years.textContent  = parts.years;
     unitValues.months.textContent = parts.months;
-    unitValues.days.textContent = parts.days;
-    unitValues.hours.textContent = parts.hours;
-    unitValues.mins.textContent = parts.mins;
-    unitValues.secs.textContent = parts.secs;
+    unitValues.weeks.textContent  = parts.weeks;
+    unitValues.days.textContent   = parts.days;
+    unitValues.hours.textContent  = parts.hours;
+    unitValues.mins.textContent   = parts.mins;
+    unitValues.secs.textContent   = parts.secs;
 
-    unitEls.years.style.display   = settings.showYears   ? '' : 'none';
-    unitEls.months.style.display  = settings.showMonths  ? '' : 'none';
-    unitEls.days.style.display    = settings.showDays    ? '' : 'none';
-    unitEls.hours.style.display   = settings.showHours   ? '' : 'none';
-    unitEls.mins.style.display    = settings.showMins    ? '' : 'none';
-    unitEls.secs.style.display    = settings.showSecs    ? '' : 'none';
+    unitEls.years.style.display  = s.showYears  ? '' : 'none';
+    unitEls.months.style.display = s.showMonths ? '' : 'none';
+    unitEls.weeks.style.display  = s.showWeeks  ? '' : 'none';
+    unitEls.days.style.display   = s.showDays   ? '' : 'none';
+    unitEls.hours.style.display  = s.showHours  ? '' : 'none';
+    unitEls.mins.style.display   = s.showMins   ? '' : 'none';
+    unitEls.secs.style.display   = s.showSecs   ? '' : 'none';
     updateGridColumns();
   }
 
-  // toggles the .open class of the panel
-  editBtn.addEventListener('click', () => panel.classList.toggle('open'));
+  editBtn.addEventListener('click', () => {
+    panel.classList.toggle('open');
+    if (!panel.classList.contains('open')) updateGridColumns();
+  });
 
-  // writes values entered to local storage
   saveBtn.addEventListener('click', () => {
     const data = {
-      title: inTitle.value.trim(),
-      date:  inDate.value,
-      hour:  parseInt(inHour.value) || 0,
-      min:   parseInt(inMin.value)  || 0,
-      sec:   parseInt(inSec.value)  || 0,
+      title:      inTitle.value.trim(),
+      date:       inDate.value,
+      hour:       parseInt(inHour.value) || 0,
+      min:        parseInt(inMin.value)  || 0,
+      sec:        parseInt(inSec.value)  || 0,
       showYears:  inShowYears.checked,
       showMonths: inShowMonths.checked,
+      showWeeks:  inShowWeeks.checked,
       showDays:   inShowDays.checked,
       showHours:  inShowHours.checked,
       showMins:   inShowMins.checked,
@@ -474,9 +471,9 @@
     populateForm(data);
     panel.classList.remove('open');
     tick();
+    updateGridColumns();
   });
 
-  // init population and tick
   populateForm(loadData());
   updateGridColumns();
   tick();
