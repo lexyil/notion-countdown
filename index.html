@@ -310,7 +310,6 @@
     inShowSecs.checked   = d.showSecs   !== false;
   }
 
-  // recalculate column count from saved visibility; no-op while panel is open
   function updateGridColumns() {
     if (panel.classList.contains('open')) return;
     const d = loadData();
@@ -324,6 +323,20 @@
       d.showSecs   !== false,
     ].filter(Boolean).length || 1;
     unitsEl.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+  }
+
+  // Advance a date by N whole calendar months, then return the remaining
+  // seconds between that advanced date and the target.
+  // This correctly handles month-length differences (e.g. Jan 31 + 1 month = Feb 28).
+  function advanceMonths(from, monthCount) {
+    const d = new Date(from.getFullYear(), from.getMonth() + monthCount,
+                       from.getDate(), from.getHours(), from.getMinutes(), from.getSeconds());
+    // If JS rolled over into the next month (e.g. Jan 31 -> Mar 3), pull back to last day of intended month
+    const intendedMonth = (from.getMonth() + monthCount) % 12;
+    if (d.getMonth() !== ((from.getMonth() + monthCount) % 12 + 12) % 12) {
+      d.setDate(0); // last day of the previous month
+    }
+    return d;
   }
 
   function tick() {
@@ -361,21 +374,34 @@
     let remaining = totalSeconds;
 
     if (s.showYears) {
+      // Count whole calendar years between now and target
       years = y2 - now.getFullYear();
       if (years < 0) years = 0;
-      const base = new Date(now.getFullYear() + years, now.getMonth(), now.getDate(),
-                            now.getHours(), now.getMinutes(), now.getSeconds());
-      remaining = Math.max(0, Math.floor((target - base) / 1000));
+      // Check if we've actually passed the anniversary this year
+      const anniv = new Date(now.getFullYear() + years, now.getMonth(), now.getDate(),
+                             now.getHours(), now.getMinutes(), now.getSeconds());
+      if (anniv > target) years--;
+      if (years < 0) years = 0;
+      // Remaining = seconds from (now + years) to target
+      const baseY = advanceMonths(now, years * 12);
+      remaining = Math.max(0, Math.floor((target - baseY) / 1000));
     }
 
     if (s.showMonths) {
-      months = (y2 - now.getFullYear()) * 12 + (m2 - 1 - now.getMonth());
-      if (day2 < now.getDate()) months--;
+      // Count whole calendar months between (now + years already consumed) and target
+      const fromDate = s.showYears ? advanceMonths(now, years * 12) : now;
+      const fromY = fromDate.getFullYear();
+      const fromM = fromDate.getMonth();
+
+      months = (y2 - fromY) * 12 + (m2 - 1 - fromM);
+      // If the day/time within the month hasn't been reached yet, we haven't completed that month
+      const testBase = advanceMonths(fromDate, months);
+      if (testBase > target) months--;
       if (months < 0) months = 0;
-      months -= years * 12;
-      const base = new Date(now.getFullYear() + years, now.getMonth() + months, now.getDate(),
-                            now.getHours(), now.getMinutes(), now.getSeconds());
-      remaining = Math.max(0, Math.floor((target - base) / 1000));
+
+      // Remaining = seconds from (fromDate + months) to target
+      const baseM = advanceMonths(fromDate, months);
+      remaining = Math.max(0, Math.floor((target - baseM) / 1000));
     }
 
     if (!s.showYears && !s.showMonths && !s.showDays && !s.showHours && !s.showMins && !s.showSecs && !s.showWeeks) {
@@ -383,7 +409,6 @@
     }
 
     const parts = { years, months, weeks: 0, days: 0, hours: 0, mins: 0, secs: 0 };
-    // cursor starts after years/months have been subtracted if those units are shown
     let cursor = (s.showYears || s.showMonths) ? remaining : totalSeconds;
 
     if (s.showWeeks) {
